@@ -56,6 +56,7 @@ def placeholder_inputs(batch_size):
                                                          c3d_model.CROP_SIZE,
                                                          c3d_model.CROP_SIZE,
                                                          c3d_model.CHANNELS))
+
   labels_placeholder = tf.placeholder(tf.int64, shape=(batch_size))
   return images_placeholder, labels_placeholder
 
@@ -212,12 +213,14 @@ def run_training():
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
       train_images, train_labels, _, _, _ = input_data.read_clip_and_label(
-                      filename='list/train.list',
+                      filename='./list/train.list',
                       batch_size=FLAGS.batch_size * gpu_num,
                       num_frames_per_clip=c3d_model.NUM_FRAMES_PER_CLIP,
                       crop_size=c3d_model.CROP_SIZE,
                       shuffle=True
                       )
+      print("train_images.shape")
+      print(train_images.shape)
       sess.run(train_op, feed_dict={
                       images_placeholder: train_images,
                       labels_placeholder: train_labels
@@ -238,7 +241,7 @@ def run_training():
         train_writer.add_summary(summary, step)
         print('Validation Data Eval:')
         val_images, val_labels, _, _, _ = input_data.read_clip_and_label(
-                        filename='list/test.list',
+                        filename='./list/test.list',
                         batch_size=FLAGS.batch_size * gpu_num,
                         num_frames_per_clip=c3d_model.NUM_FRAMES_PER_CLIP,
                         crop_size=c3d_model.CROP_SIZE,

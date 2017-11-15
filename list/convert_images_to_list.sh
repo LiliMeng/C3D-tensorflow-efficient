@@ -23,10 +23,10 @@
 > train.list
 > test.list
 COUNT=-1
-for folder in /home/lili/Video/UCF101/*
-do
+#for folder in /home/lili/Video/UCF101/*
+#do
     COUNT=$[$COUNT + 1]
-    for imagesFolder in "$folder"/*
+    for imagesFolder in /home/lili/Video/UCF101/*
     do
         if (( $(jot -r 1 1 4)  > 1 )); then
             echo "$imagesFolder" $COUNT >> train.list
@@ -34,4 +34,4 @@ do
             echo "$imagesFolder" $COUNT >> test.list
         fi        
     done
-done
+#done
