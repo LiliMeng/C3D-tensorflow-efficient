@@ -15,12 +15,12 @@
 #       ~/document/videofile/walk/video1/00005.jpg
 #       ...
 
-for file in ./UCF101/*.avi
+for file in /home/lili/Video/UCF101/*.avi
     do
         if [[ ! -d "${file[@]%.avi}" ]]; then
             mkdir -p "${file[@]%.avi}"
         fi
-        ffmpeg -i "$file" -vf fps=$2 "${file[@]%.avi}"/%05d.jpg
+        ffmpeg -i "$file" -vf fps=5 "${file[@]%.avi}"/%05d.jpg
         rm "$file"
     done
 
