@@ -23,9 +23,9 @@ kernel_depth = 3
 kernel_height = 3
 kernel_width = 3
 
-output_channel = [8, 16, 32]
+output_channel = [16, 32, 64]
 num_units = 3
-num_blocks = [2, 2, 2]
+num_blocks = [3, 3, 3]
 
 batch_size = 4
 "-----------------------------------------------------------------------------------------------------------------------"
@@ -44,14 +44,14 @@ def resent_c3d_basic_block(Y0, input_channel, output_channel, scope_name):
                               output_channel, output_channel], 'weight_K2')
 
         Y = conv3d('conv1', Y0, K1)
-        #Y = diagnal_3dconv('conv1', Y0, input_channel)
+        # Y = diagnal_3dconv('conv1', Y0, input_channel)
         # add bias
         Y = Y + bias_variable([output_channel], 'bias_b1')
 
         Y = tf.nn.relu(Y, 'relu_r1')
 
         Y = conv3d('conv2', Y, K2)
-   
+
         Y = Y + bias_variable([output_channel], 'bias_2')
 
         scope.reuse_variables()
@@ -86,18 +86,10 @@ def resnet_c3d_unit(Y, num_blocks, input_channel, output_channel, stride, scope_
 
     with tf.variable_scope(scope_name) as scope:
         for i in range(num_blocks - 1):
-            Y = resent_c3d_basic_block(Y,
-                                       input_channel=input_channel,
-                                       output_channel=input_channel,
-                                       scope_name="block" +
-                                       str(i))
-
-            Y = resent_c3d_connective_block(Y,
-                                            input_channel=input_channel,
-                                            output_channel=output_channel,
-                                            stride=stride,
-                                            scope_name="block" +
-                                            str(num_blocks - 1))
+            Y = resent_c3d_basic_block(Y, input_channel=input_channel,
+                                       output_channel=input_channel, scope_name="block" + str(i))
+        Y = resent_c3d_connective_block(Y, input_channel=input_channel, output_channel=output_channel,
+                                        stride=stride, scope_name="block" + str(num_blocks - 1))
 
         return Y
 
@@ -138,21 +130,12 @@ def inference_c3d(Y):
                                 stride=1,
                                 scope_name='unit' + str(num_units - 1))
 
-            # average pooling layer
-            # Y = tf.nn.avg_pool3d(Y, ksize=[1, kernel_width, 2, 2, 1], strides=[1, kernel_width, 2, 2, 1], padding='SAME', name=name)
-
-            print("Y.shape before average pooling")
-            print(Y.shape)
+           
             # average pooling layer
             Y = tf.reduce_mean(Y, [2, 3])
 
-            print("Y.shape after average pooling")
-            print(Y.shape)
 
             Y = tf.reshape(Y, [batch_size, -1])
-
-            print("Y.shape after average pooling and reshape")
-            print(Y.shape)
 
             # Fully connected layer weight
             FC_W = weight_variable(
