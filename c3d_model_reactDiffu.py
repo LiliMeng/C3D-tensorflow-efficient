@@ -19,7 +19,7 @@ Implements the inference pattern for model building.
 inference_c3d(): Builds the model as far as is required for running the network
 forward to make predictions.
 """
-
+from utils import *
 import tensorflow as tf
 
 # The UCF-101 dataset has 101 classes
@@ -37,14 +37,15 @@ NUM_FRAMES_PER_CLIP = 16
 def conv3d(name, l_input, w, b):
   return tf.nn.bias_add(
           tf.nn.conv3d(l_input, w, strides=[1, 1, 1, 1, 1], padding='SAME'),
-          b
-          )
+          b)
 
 def max_pool(name, l_input, k):
   return tf.nn.max_pool3d(l_input, ksize=[1, k, 2, 2, 1], strides=[1, k, 2, 2, 1], padding='SAME', name=name)
 
 def inference_c3d(_X, _dropout, batch_size, _weights, _biases):
-
+  print("network input shape")
+  print(_X.shape)
+  
   # Convolution Layer
   conv1 = conv3d('conv1', _X, _weights['wc1'], _biases['bc1'])
   conv1 = tf.nn.relu(conv1, 'relu1')
@@ -65,14 +66,26 @@ def inference_c3d(_X, _dropout, batch_size, _weights, _biases):
   # Convolution Layer
   conv4 = conv3d('conv4a', pool3, _weights['wc4a'], _biases['bc4a'])
   conv4 = tf.nn.relu(conv4, 'relu4a')
-  conv4 = conv3d('conv4b', conv4, _weights['wc4b'], _biases['bc4b'])
+  conv4 = diagnal_3dconv('conv4b', conv4, 512)
+  # Add bias
+  conv4 = conv4 + bias_variable([512], 'bias_conv4b')
+  #conv4 = conv3d('conv4b', conv4, _weights['wc4b'], _biases['bc4b'])
   conv4 = tf.nn.relu(conv4, 'relu4b')
   pool4 = max_pool('pool4', conv4, k=2)
 
   # Convolution Layer
-  conv5 = conv3d('conv5a', pool4, _weights['wc5a'], _biases['bc5a'])
+  conv5 = diagnal_3dconv('conv5a', pool4, 512)
+  # Add bias
+  conv5 = conv5 + bias_variable([512], 'bias_conv5a')
+
+  #conv5 = conv3d('conv5a', pool4, _weights['wc5a'], _biases['bc5a'])
   conv5 = tf.nn.relu(conv5, 'relu5a')
-  conv5 = conv3d('conv5b', conv5, _weights['wc5b'], _biases['bc5b'])
+
+   # Convolution Layer
+  conv5 = diagnal_3dconv('conv5b', conv5, 512)
+  # Add bias
+  conv5 = conv5 + bias_variable([512], 'bias_conv5b')
+  #conv5 = conv3d('conv5b', conv5, _weights['wc5b'], _biases['bc5b'])
   conv5 = tf.nn.relu(conv5, 'relu5b')
   pool5 = max_pool('pool5', conv5, k=2)
 
@@ -91,4 +104,3 @@ def inference_c3d(_X, _dropout, batch_size, _weights, _biases):
   out = tf.matmul(dense2, _weights['out']) + _biases['out']
 
   return out
-
