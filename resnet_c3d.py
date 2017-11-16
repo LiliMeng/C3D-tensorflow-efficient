@@ -44,6 +44,7 @@ def resent_c3d_basic_block(Y0, input_channel, output_channel, scope_name):
                               output_channel, output_channel], 'weight_K2')
 
         Y = conv3d('conv1', Y0, K1)
+        #Y = diagnal_3dconv('conv1', Y0, input_channel)
         # add bias
         Y = Y + bias_variable([output_channel], 'bias_b1')
 
