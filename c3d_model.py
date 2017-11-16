@@ -64,6 +64,8 @@ def inference_c3d(_X, _dropout, batch_size, _weights, _biases):
   conv4 = conv3d('conv4a', pool3, _weights['wc4a'], _biases['bc4a'])
   conv4 = tf.nn.relu(conv4, 'relu4a')
   conv4 = diagnal_3dconv('reaction_diffusion_conv', conv4, 512)
+  # Add bias
+  conv4 = conv4 + bias_variable([512], 'bias_react_diffu')
   #conv4 = conv3d('conv4b', conv4, _weights['wc4b'], _biases['bc4b'])
   conv4 = tf.nn.relu(conv4, 'relu4b')
   pool4 = max_pool('pool4', conv4, k=2)
