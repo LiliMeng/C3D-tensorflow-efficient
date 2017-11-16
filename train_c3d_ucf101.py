@@ -24,10 +24,11 @@ import input_data
 import c3d_model
 import math
 import numpy as np
+import utils
 
 # Basic model parameters as external flags.
 flags = tf.app.flags
-gpu_num = 2
+gpu_num = 1
 #flags.DEFINE_float('learning_rate', 0.0, 'Initial learning rate.')
 flags.DEFINE_integer('max_steps', 5000, 'Number of steps to run trainer.')
 flags.DEFINE_integer('batch_size', 10, 'Batch size.')
