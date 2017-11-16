@@ -22,21 +22,16 @@ def diagnal_3dconv(scope_name, Y, channel):
         Z_diffusion = []
 
         # # The diagnal will be filter [3,3,1,1]
-        print("Y.shape")
-        print(Y.shape)
+       
         for i in range(channel):
             K_d = weight_variable([3, 3, 3, 1, 1], 'weight_diagnal' + str(i+1))
             Y_one_channel = Y[:, :, :, :, i:i + 1]
             singleYK = conv3d(scope_name, Y_one_channel,K_d)
             Z_diffusion.append(singleYK)
 
-        Z_tmp = tf.stack(Z_diffusion)
-        print("Z_tmp.shape")
-        print(Z_tmp.shape)
+        Z_tmp = tf.stack(Z_diffusion)      
         Z_diffusion = tf.transpose(tf.squeeze(Z_tmp, 5), [1, 2, 3, 4, 0])
-        print("Z_diffusion.shape")
-        print(Z_diffusion.shape)
-
+      
 
         # # Step 2: The reaction term
 
@@ -44,8 +39,6 @@ def diagnal_3dconv(scope_name, Y, channel):
             [1, 1, 1, channel, channel], 'weight_side1' + scope_name)
 
         Z_reaction = conv3d('Z_reaction',Y, K_r)
-        print("Z_reaction.shape")
-        print(Z_reaction.shape)
 
         # Step 3: add the diffusion and reaction together
         Z_output = Z_diffusion + Z_reaction
