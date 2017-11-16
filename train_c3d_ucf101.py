@@ -21,7 +21,8 @@ import numpy
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import input_data
-import c3d_model
+#import c3d_model
+import resnet_c3d
 import math
 import numpy as np
 import utils
@@ -35,6 +36,8 @@ flags.DEFINE_integer('batch_size', 2, 'Batch size.')
 FLAGS = flags.FLAGS
 MOVING_AVERAGE_DECAY = 0.9999
 model_save_dir = './models'
+
+
 
 def placeholder_inputs(batch_size):
   """Generate placeholder variables to represent the input tensors.
@@ -53,10 +56,10 @@ def placeholder_inputs(batch_size):
   # image and label tensors, except the first dimension is now batch_size
   # rather than the full size of the train or test data sets.
   images_placeholder = tf.placeholder(tf.float32, shape=(batch_size,
-                                                         c3d_model.NUM_FRAMES_PER_CLIP,
-                                                         c3d_model.CROP_SIZE,
-                                                         c3d_model.CROP_SIZE,
-                                                         c3d_model.CHANNELS))
+                                                        resnet_c3d.NUM_FRAMES_PER_CLIP,
+                                                        resnet_c3d.CROP_SIZE,
+                                                        resnet_c3d.CROP_SIZE,
+                                                        resnet_c3d.CHANNELS))
 
   labels_placeholder = tf.placeholder(tf.int64, shape=(batch_size))
   return images_placeholder, labels_placeholder
@@ -115,7 +118,7 @@ def run_training():
   # Create model directory
   if not os.path.exists(model_save_dir):
       os.makedirs(model_save_dir)
-  use_pretrained_model = True 
+  use_pretrained_model = False
   model_filename = "./sports1m_finetuning_ucf101.model"
 
   with tf.Graph().as_default():
@@ -133,70 +136,62 @@ def run_training():
     logits = []
     opt_stable = tf.train.AdamOptimizer(1e-4)
     opt_finetuning = tf.train.AdamOptimizer(1e-3)
-    with tf.variable_scope('var_name') as var_scope:
-      weights = {
-              'wc1': _variable_with_weight_decay('wc1', [3, 3, 3, 3, 64], 0.0005),
-              'wc2': _variable_with_weight_decay('wc2', [3, 3, 3, 64, 128], 0.0005),
-              'wc3a': _variable_with_weight_decay('wc3a', [3, 3, 3, 128, 256], 0.0005),
-              'wc3b': _variable_with_weight_decay('wc3b', [3, 3, 3, 256, 256], 0.0005),
-              'wc4a': _variable_with_weight_decay('wc4a', [3, 3, 3, 256, 512], 0.0005),
-              'wc4b': _variable_with_weight_decay('wc4b', [3, 3, 3, 512, 512], 0.0005),
-              'wc5a': _variable_with_weight_decay('wc5a', [3, 3, 3, 512, 512], 0.0005),
-              'wc5b': _variable_with_weight_decay('wc5b', [3, 3, 3, 512, 512], 0.0005),
-              'wd1': _variable_with_weight_decay('wd1', [8192, 4096], 0.0005),
-              'wd2': _variable_with_weight_decay('wd2', [4096, 4096], 0.0005),
-              'out': _variable_with_weight_decay('wout', [4096, c3d_model.NUM_CLASSES], 0.0005)
-              }
-      biases = {
-              'bc1': _variable_with_weight_decay('bc1', [64], 0.000),
-              'bc2': _variable_with_weight_decay('bc2', [128], 0.000),
-              'bc3a': _variable_with_weight_decay('bc3a', [256], 0.000),
-              'bc3b': _variable_with_weight_decay('bc3b', [256], 0.000),
-              'bc4a': _variable_with_weight_decay('bc4a', [512], 0.000),
-              'bc4b': _variable_with_weight_decay('bc4b', [512], 0.000),
-              'bc5a': _variable_with_weight_decay('bc5a', [512], 0.000),
-              'bc5b': _variable_with_weight_decay('bc5b', [512], 0.000),
-              'bd1': _variable_with_weight_decay('bd1', [4096], 0.000),
-              'bd2': _variable_with_weight_decay('bd2', [4096], 0.000),
-              'out': _variable_with_weight_decay('bout', [c3d_model.NUM_CLASSES], 0.000),
-              }
+    
     for gpu_index in range(0, gpu_num):
       with tf.device('/gpu:%d' % gpu_index):
         
-        varlist2 = [ weights['out'],biases['out'] ]
-        varlist1 =  list(set(list(weights.values()) + list(biases.values())) - set(varlist2))
-        logit = c3d_model.inference_c3d(
-                        images_placeholder[gpu_index * FLAGS.batch_size:(gpu_index + 1) * FLAGS.batch_size,:,:,:,:],
-                        0.5,
-                        FLAGS.batch_size,
-                        weights,
-                        biases
-                        )
+        
+        #varlist2 = [ weights['out'],biases['out'] ]
+        #varlist1 =  list(set(list(weights.values()) + list(biases.values())) - set(varlist2))
+        logit = resnet_c3d.inference_c3d(
+                        images_placeholder[gpu_index * FLAGS.batch_size:(gpu_index + 1) * FLAGS.batch_size,:,:,:,:])
+                      #  0.5,
+                      #  FLAGS.batch_size,
+                        #weights,
+                       # biases
+                      #  )
+
+        varlist2 = []
+        weights = []
+        biases = []
+        for var in tf.trainable_variables():
+            print(var.op.name)
+            if var.op.name.find(r"weight") > 0:
+                varlist2.append(var)
+                weights.append(var)
+            if var.op.name.find(r"bias") > 0 :
+                varlist2.append(var)
+                biases.append(var)
+        
+        print("len(varlist2)")
+        print(len(varlist2))
         loss_name_scope = ('gpud_%d_loss' % gpu_index)
         loss = tower_loss(
                         loss_name_scope,
                         logit,
                         labels_placeholder[gpu_index * FLAGS.batch_size:(gpu_index + 1) * FLAGS.batch_size]
                         )
-        grads1 = opt_stable.compute_gradients(loss, varlist1)
+        #grads1 = opt_stable.compute_gradients(loss, varlist1)
         grads2 = opt_finetuning.compute_gradients(loss, varlist2)
-        tower_grads1.append(grads1)
+        #tower_grads1.append(grads1)
         tower_grads2.append(grads2)
         logits.append(logit)
     logits = tf.concat(logits,0)
     accuracy = tower_acc(logits, labels_placeholder)
     tf.summary.scalar('accuracy', accuracy)
     grads1 = average_gradients(tower_grads1)
-    grads2 = average_gradients(tower_grads2)
-    apply_gradient_op1 = opt_stable.apply_gradients(grads1)
+    #grads2 = average_gradients(tower_grads2)
+    #apply_gradient_op1 = opt_stable.apply_gradients(grads1)
     apply_gradient_op2 = opt_finetuning.apply_gradients(grads2, global_step=global_step)
     variable_averages = tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY)
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
-    train_op = tf.group(apply_gradient_op1, apply_gradient_op2, variables_averages_op)
+    #train_op = tf.group(apply_gradient_op1, apply_gradient_op2, variables_averages_op)
+    train_op = tf.group(apply_gradient_op2, variables_averages_op)
     null_op = tf.no_op()
 
     # Create a saver for writing training checkpoints.
-    saver = tf.train.Saver(list(weights.values()) + list(biases.values()))
+    #saver = tf.train.Saver(list(weights.values()) + list(biases.values()))
+    saver = tf.train.Saver(weights+biases)
     init = tf.global_variables_initializer()
 
     # Create a session for running Ops on the Graph.
@@ -216,8 +211,8 @@ def run_training():
       train_images, train_labels, _, _, _ = input_data.read_clip_and_label(
                       filename='./list/train.list',
                       batch_size=FLAGS.batch_size * gpu_num,
-                      num_frames_per_clip=c3d_model.NUM_FRAMES_PER_CLIP,
-                      crop_size=c3d_model.CROP_SIZE,
+                      num_frames_per_clip=resnet_c3d.NUM_FRAMES_PER_CLIP,
+                      crop_size=resnet_c3d.CROP_SIZE,
                       shuffle=True
                       )
       print("train_images.shape")
@@ -244,8 +239,8 @@ def run_training():
         val_images, val_labels, _, _, _ = input_data.read_clip_and_label(
                         filename='./list/test.list',
                         batch_size=FLAGS.batch_size * gpu_num,
-                        num_frames_per_clip=c3d_model.NUM_FRAMES_PER_CLIP,
-                        crop_size=c3d_model.CROP_SIZE,
+                        num_frames_per_clip=resnet_c3d.NUM_FRAMES_PER_CLIP,
+                        crop_size=resnet_c3d.CROP_SIZE,
                         shuffle=True
                         )
         summary, acc = sess.run(
