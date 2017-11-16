@@ -22,8 +22,9 @@ def conv2d_transpose(x,W):
                                   strides=[1,1,1,1],
                                   padding='SAME')
 
-def conv3d_transpose(x,W):
-    return tf.nn.conv3d_transpose(x, W,
+def conv3d_transpose(scope_name, x,W):
+    with tf.variable_scope(scope_name, x, W):
+        return tf.nn.conv3d_transpose(x, W,
                                   output_shape=tf.concat(
                                     [tf.shape(x)[0:4],[tf.shape(W)[3]]], axis=0),
                                     strides =[1,1,1,1,1],
@@ -37,7 +38,7 @@ def diagnal_3dconv_transpose(scope_name, Y, channel):
 
         K_d = weight_variable([3,3,3,channel,channel], 'K_d'+scope_name)
 
-        Z_diffusion = conv3d_transpose(Y, K_d)
+        Z_diffusion = conv3d_transpose(scope_name, Y, K_d)
         
          # # Step 2: The reaction term
 

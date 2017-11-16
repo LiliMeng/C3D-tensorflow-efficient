@@ -50,7 +50,7 @@ def resent_c3d_basic_block(Y0, input_channel, output_channel, scope_name):
         Y = tf.nn.relu(Y, 'relu_r1')
 
         Y = conv3d('conv2', Y, K2)
-
+   
         Y = Y + bias_variable([output_channel], 'bias_2')
 
         scope.reuse_variables()
