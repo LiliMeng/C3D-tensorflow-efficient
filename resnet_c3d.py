@@ -71,8 +71,8 @@ def resent_c3d_connective_block(Y, input_channel, output_channel, stride, scope_
 
         Y = tf.nn.relu(Y, 'relu_conv')
 
-        Y = tf.nn.avg_pool3d(Y, ksize=[1, kernel_width, 2, 2, 1], strides=[
-                             1, kernel_width, 2, 2, 1], padding='SAME', name="avg_pool_conn")
+        Y = tf.nn.avg_pool3d(Y, ksize=[1, kernel_depth, 2, 2, 1], strides=[
+                             1, kernel_depth, 2, 2, 1], padding='SAME', name="avg_pool_conn")
 
         scope.reuse_variables()
 
